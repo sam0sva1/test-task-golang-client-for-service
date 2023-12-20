@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"service-client/internal/batchservice"
-	"sync"
 	"time"
 )
 
@@ -22,31 +21,18 @@ type ButchClient struct {
 	periodLimit     time.Duration
 }
 
-var ErrClientAlreadyTerminated = errors.New("sending to terminated client")
+func Init(service batchservice.Service) *ButchClient {
+	number, period := service.GetLimits()
+	channel := make(chan struct{})
+	done := make(chan struct{})
 
-var client *ButchClient
-var once sync.Once
-
-func Init(ctx context.Context, service batchservice.Service) *ButchClient {
-	once.Do(func() {
-		number, period := service.GetLimits()
-		channel := make(chan struct{})
-		done := make(chan struct{})
-
-		client = &ButchClient{
-			channel,
-			done,
-			service,
-			number,
-			period,
-		}
-	})
-
-	go func() {
-		<-ctx.Done()
-		fmt.Println("GLOBAL CANCELED")
-		close(client.done)
-	}()
+	client := &ButchClient{
+		channel,
+		done,
+		service,
+		number,
+		period,
+	}
 
 	return client
 }
@@ -61,7 +47,6 @@ func (c *ButchClient) processBatch(chItem *ChannelItem) {
 	for {
 		select {
 		case <-chItem.reqContext.Done():
-			fmt.Println("CANCELED")
 			return
 
 		default:
@@ -93,21 +78,13 @@ func (c *ButchClient) processItem(ctx context.Context, newBatch batchservice.Bat
 	<-after
 }
 
-func (c *ButchClient) Send(ctx context.Context, newBatch batchservice.Batch) error {
-	select {
-	case <-c.done:
-		fmt.Println("ALREADY TERMINATED")
-		return ErrClientAlreadyTerminated
-	default:
-		go func() {
-			chiItem := &ChannelItem{
-				reqContext: ctx,
-				batch:      newBatch,
-			}
-			go c.processBatch(chiItem)
-			<-c.channel
-		}()
-
-		return nil
-	}
+func (c *ButchClient) Send(ctx context.Context, newBatch batchservice.Batch) {
+	go func() {
+		chiItem := &ChannelItem{
+			reqContext: ctx,
+			batch:      newBatch,
+		}
+		go c.processBatch(chiItem)
+		<-c.channel
+	}()
 }
