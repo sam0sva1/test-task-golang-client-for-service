@@ -9,3 +9,5 @@ run_tests:
 
 show_coverage:
 	go tool cover -html=coverage/coverage.out
+
+.PHONY: run_dev_api run_linter run_tests show_coverage
