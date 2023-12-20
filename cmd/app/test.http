@@ -1,0 +1,13 @@
+### Send POST to append
+POST http://localhost:3000/send
+Content-Type: application/json
+
+{
+  "number": 7400
+}
+
+### Send POST to append
+POST http://localhost:3000/cancel
+Content-Type: application/json
+
+###
