@@ -2,11 +2,15 @@ package batchclient
 
 import (
 	"context"
+	"log/slog"
+	"os"
 	"service-client/internal/batchservice"
 	"sync/atomic"
 	"testing"
 	"time"
 )
+
+var logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
 func TestButchClient_Send(t *testing.T) {
 	t.Run("gets correct final total", func(t *testing.T) {
@@ -22,7 +26,7 @@ func TestButchClient_Send(t *testing.T) {
 				total.Add(uint64(len(batch)))
 			}),
 		)
-		localClient := Init(service)
+		localClient := Init(logger, service)
 
 		var batch batchservice.Batch
 		for i := 0; i < correctTotal; i += 1 {
@@ -54,7 +58,7 @@ func TestButchClient_Send(t *testing.T) {
 				}
 			}),
 		)
-		localClient := Init(service)
+		localClient := Init(logger, service)
 
 		var batch batchservice.Batch
 		for i := 0; i < correctTotal; i += 1 {
@@ -74,7 +78,7 @@ func TestButchClient_Send(t *testing.T) {
 			batchservice.WithPeriod(1*time.Second),
 		)
 
-		localClient := Init(service)
+		localClient := Init(logger, service)
 
 		var batch batchservice.Batch
 		for i := 0; i < correctTotal; i += 1 {
@@ -97,7 +101,7 @@ func TestButchClient_Send(t *testing.T) {
 			batchservice.WithNumber(numberOfItems),
 			batchservice.WithPeriod(correctTiming),
 		)
-		localClient := Init(service)
+		localClient := Init(logger, service)
 
 		requestCtx, _ := context.WithCancel(context.Background())
 
