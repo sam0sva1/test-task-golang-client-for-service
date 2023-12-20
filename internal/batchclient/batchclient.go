@@ -26,24 +26,29 @@ type ButchClient struct {
 }
 
 func Init(logger *slog.Logger, service batchservice.Service) *ButchClient {
-	number, period := service.GetLimits()
 	channel := make(chan struct{})
 	done := make(chan struct{})
+
+	client := &ButchClient{
+		logger:  logger,
+		channel: channel,
+		done:    done,
+		service: service,
+	}
+
+	client.resetLimits()
 
 	go func() {
 		channel <- struct{}{}
 	}()
 
-	client := &ButchClient{
-		logger,
-		channel,
-		done,
-		service,
-		number,
-		period,
-	}
-
 	return client
+}
+
+func (c *ButchClient) resetLimits() {
+	number, period := c.service.GetLimits()
+	c.itemNumberLimit = number
+	c.periodLimit = period
 }
 
 // processBatch cuts a batch into chunks to comply underlying service restrictions.
@@ -86,8 +91,13 @@ func (c *ButchClient) processItem(ctx context.Context, newBatch batchservice.Bat
 		c.logger.Error(fmt.Sprintf("%s: %s", mark, err))
 
 		if errors.Is(err, batchservice.ErrBlocked) {
+			freezeWait := time.After(5 * time.Second)
 			c.logger.Error(fmt.Sprintf("%s: freeze accured", mark))
-			time.Sleep(5 * time.Second)
+
+			// Ensures that limits are up-to-date
+			c.resetLimits()
+
+			<-freezeWait
 		}
 	}
 

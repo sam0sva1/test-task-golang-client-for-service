@@ -91,7 +91,7 @@ func TestButchClient_Send(t *testing.T) {
 		requestCancel()
 	})
 
-	t.Run("do not panic if correct timing", func(t *testing.T) {
+	t.Run("works properly with multiple calls", func(t *testing.T) {
 		correctTotal := 10000
 		iterations := 5
 		correctTiming := 50 * time.Millisecond
