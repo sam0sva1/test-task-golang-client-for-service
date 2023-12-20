@@ -81,8 +81,6 @@ func (s *ButchService) Process(ctx context.Context, batch Batch) error {
 		return ErrBlocked
 	}
 
-	fmt.Println("===> Processing: ", len(batch))
-
 	if s.testHandler != nil {
 		s.testHandler(batch)
 	}

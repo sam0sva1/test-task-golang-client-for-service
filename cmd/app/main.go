@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi/v5"
+	"log"
 	"log/slog"
 	"net/http"
 	"os"
 	"service-client/internal/batchclient"
 	"service-client/internal/batchservice"
+	"time"
 )
 
 func main() {
@@ -56,7 +58,16 @@ func main() {
 		w.Write([]byte("done"))
 	})
 
-	http.ListenAndServe(":3000", r)
+	server := &http.Server{
+		Addr:              ":3000",
+		ReadHeaderTimeout: 3 * time.Second,
+	}
+
+	logger.Info("starting the server...")
+	err := server.ListenAndServe()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func setupLogger() *slog.Logger {
