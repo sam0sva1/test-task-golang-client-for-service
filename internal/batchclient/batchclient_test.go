@@ -86,4 +86,30 @@ func TestButchClient_Send(t *testing.T) {
 		time.Sleep(2 * time.Second)
 		requestCancel()
 	})
+
+	t.Run("do not panic if correct timing", func(t *testing.T) {
+		correctTotal := 10000
+		iterations := 5
+		correctTiming := 50 * time.Millisecond
+		var numberOfItems uint64 = 500
+
+		service := batchservice.New(
+			batchservice.WithNumber(numberOfItems),
+			batchservice.WithPeriod(correctTiming),
+		)
+		localClient := Init(service)
+
+		requestCtx, _ := context.WithCancel(context.Background())
+
+		for i := 0; i < iterations; i += 1 {
+			batch := make(batchservice.Batch, 0, correctTotal)
+			for j := 0; j < correctTotal; j += 1 {
+				batch = append(batch, batchservice.Item{ID: i})
+			}
+
+			localClient.Send(requestCtx, batch)
+		}
+
+		time.Sleep(7 * time.Second)
+	})
 }

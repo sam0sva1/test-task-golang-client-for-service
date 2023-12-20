@@ -5,16 +5,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi/v5"
+	"log/slog"
 	"net/http"
+	"os"
 	"service-client/internal/batchclient"
 	"service-client/internal/batchservice"
 )
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
+	logger := setupLogger()
 
 	service := batchservice.New()
-	client := batchclient.Init(ctx, service)
+	client := batchclient.Init(logger, service)
 
 	r := chi.NewRouter()
 
@@ -54,4 +57,9 @@ func main() {
 	})
 
 	http.ListenAndServe(":3000", r)
+}
+
+func setupLogger() *slog.Logger {
+	// env switch here
+	return slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 }
