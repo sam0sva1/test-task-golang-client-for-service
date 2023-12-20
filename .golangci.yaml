@@ -392,13 +392,8 @@ linters-settings:
 # See also https://gist.github.com/cristaloleg/dc29ca0ef2fb554de28d94c3c6f6dc88
 
 output:
-  # I prefer the simplest one: `line-number` and saving to `lint.txt`
-  #
-  # The `tab` also looks good and with the next release I will switch to it
-  # (ref: https://github.com/golangci/golangci-lint/issues/3728)
-  #
   # There are more formats which can be used on CI or by your IDE.
-  format: line-number:lint.txt
+  format: tab:reports/lint.txt
 
   # I do not find this useful, parameter above already enables filepath
   # with a line and column. For me, it's easier to follow the path and

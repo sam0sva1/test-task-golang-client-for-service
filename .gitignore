@@ -1,5 +1,3 @@
 .idea
 
-coverage/**/*
-
-lint.txt
+reports/**/*
