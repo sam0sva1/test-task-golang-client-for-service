@@ -9,8 +9,13 @@ import (
 	"time"
 )
 
+type ChannelItem struct {
+	batch      batchservice.Batch
+	reqContext context.Context
+}
+
 type ButchClient struct {
-	channel         chan batchservice.Batch
+	channel         chan *ChannelItem
 	done            chan struct{}
 	service         batchservice.Service
 	itemNumberLimit uint64
@@ -25,7 +30,7 @@ var once sync.Once
 func Init(ctx context.Context, service batchservice.Service) *ButchClient {
 	once.Do(func() {
 		number, period := service.GetLimits()
-		channel := make(chan batchservice.Batch)
+		channel := make(chan *ChannelItem)
 		done := make(chan struct{})
 
 		client = &ButchClient{
@@ -36,36 +41,50 @@ func Init(ctx context.Context, service batchservice.Service) *ButchClient {
 			period,
 		}
 
-		go func(c *ButchClient) {
-			for {
-				select {
-				case batch := <-c.channel:
-					part := batch
-
-					for {
-						if uint64(len(part)) <= c.itemNumberLimit {
-							c.process(ctx, part)
-							break
-						}
-
-						toSend := part[:c.itemNumberLimit]
-						part = part[c.itemNumberLimit:]
-
-						c.process(ctx, toSend)
-					}
-				case <-ctx.Done():
-					return
-				default:
-
-				}
-			}
-		}(client)
+		go client.runMainLoop(ctx)
 	})
 
 	return client
 }
 
-func (c *ButchClient) process(ctx context.Context, newBatch batchservice.Batch) {
+func (c *ButchClient) runMainLoop(ctx context.Context) {
+	for {
+		select {
+		case chItem := <-c.channel:
+			c.processBatch(*chItem)
+		case <-ctx.Done():
+			close(client.done)
+			return
+
+		default:
+
+		}
+	}
+}
+
+func (c *ButchClient) processBatch(chItem ChannelItem) {
+	part := chItem.batch
+
+	for {
+		select {
+		case <-chItem.reqContext.Done():
+			return
+
+		default:
+			if uint64(len(part)) <= c.itemNumberLimit {
+				c.processItem(chItem.reqContext, part)
+				break
+			}
+
+			toSend := part[:c.itemNumberLimit]
+			part = part[c.itemNumberLimit:]
+
+			c.processItem(chItem.reqContext, toSend)
+		}
+	}
+}
+
+func (c *ButchClient) processItem(ctx context.Context, newBatch batchservice.Batch) {
 	after := time.After(c.periodLimit)
 
 	err := c.service.Process(ctx, newBatch)
@@ -83,12 +102,17 @@ func (c *ButchClient) process(ctx context.Context, newBatch batchservice.Batch) 
 func (c *ButchClient) Send(ctx context.Context, newBatch batchservice.Batch) error {
 	ch := make(chan error)
 
+	chiItem := &ChannelItem{
+		reqContext: ctx,
+		batch:      newBatch,
+	}
+
 	go func() {
 		select {
-		case <-ctx.Done():
+		case <-c.done:
 			ch <- ErrClientAlreadyTerminated
 			return
-		case c.channel <- newBatch:
+		case c.channel <- chiItem:
 			ch <- nil
 			return
 		}
