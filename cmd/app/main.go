@@ -44,7 +44,7 @@ func main() {
 		}()
 
 		var batch batchservice.Batch
-		for i := 0; i < bodyHolder.Number; i += 1 {
+		for i := 0; i < bodyHolder.Number; i++ {
 			batch = append(batch, batchservice.Item{ID: i})
 		}
 

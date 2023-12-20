@@ -2,6 +2,7 @@ package batchservice
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 )
@@ -48,7 +49,7 @@ func TestButchService_Process(t *testing.T) {
 		x := int(number)
 
 		var batch Batch
-		for i := 0; i < x; i += 1 {
+		for i := 0; i < x; i++ {
 			batch = append(batch, Item{ID: i})
 		}
 
@@ -84,7 +85,7 @@ func TestButchService_Process(t *testing.T) {
 		x := int(number) + 1
 
 		var batch Batch
-		for i := 0; i < x; i += 1 {
+		for i := 0; i < x; i++ {
 			batch = append(batch, Item{ID: i})
 		}
 
@@ -105,7 +106,7 @@ func TestButchService_Process(t *testing.T) {
 		err := service.Process(ctx, batch)
 		err = service.Process(ctx, batch)
 
-		if err != ErrBlocked {
+		if !errors.Is(err, ErrBlocked) {
 			t.Fatalf("incorrect cause of block")
 		}
 	})

@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// ChannelItem contains one batch and a context related to it
+// ChannelItem contains one batch and a context related to it.
 type ChannelItem struct {
 	batch      batchservice.Batch
 	reqContext context.Context
@@ -52,7 +52,7 @@ func (c *ButchClient) resetLimits() {
 }
 
 // processBatch cuts a batch into chunks to comply underlying service restrictions.
-// At the end of processing it releases the queue
+// At the end of processing it releases the queue.
 func (c *ButchClient) processBatch(chItem *ChannelItem) {
 	defer func() {
 		c.channel <- struct{}{}
@@ -79,8 +79,8 @@ func (c *ButchClient) processBatch(chItem *ChannelItem) {
 	}
 }
 
-// processItem runs only synchronously because of after channel synchronization
-// next call runs only after period limit or process response
+// processItem runs only synchronously because of after channel synchronization.
+// Next call runs only after period limit or process response.
 func (c *ButchClient) processItem(ctx context.Context, newBatch batchservice.Batch) {
 	mark := "batchClient.processItem"
 
@@ -106,7 +106,7 @@ func (c *ButchClient) processItem(ctx context.Context, newBatch batchservice.Bat
 
 // Send processes batch items one by one avoiding concurrent start
 // but not blocking a caller function
-// and this way avoiding blockage of underlying service
+// and this way avoiding blockage of underlying service.
 func (c *ButchClient) Send(ctx context.Context, newBatch batchservice.Batch) {
 	go func() {
 		<-c.channel

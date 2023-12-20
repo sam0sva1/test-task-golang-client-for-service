@@ -68,6 +68,7 @@ func (s *ButchService) GetLimits() (n uint64, p time.Duration) {
 }
 
 func (s *ButchService) Process(ctx context.Context, batch Batch) error {
+	_ = ctx
 	delta := time.Since(s.start)
 	s.start = time.Now()
 

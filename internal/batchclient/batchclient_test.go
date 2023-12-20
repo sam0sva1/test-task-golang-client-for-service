@@ -29,7 +29,7 @@ func TestButchClient_Send(t *testing.T) {
 		localClient := Init(logger, service)
 
 		var batch batchservice.Batch
-		for i := 0; i < correctTotal; i += 1 {
+		for i := 0; i < correctTotal; i++ {
 			batch = append(batch, batchservice.Item{ID: i})
 		}
 
@@ -61,7 +61,7 @@ func TestButchClient_Send(t *testing.T) {
 		localClient := Init(logger, service)
 
 		var batch batchservice.Batch
-		for i := 0; i < correctTotal; i += 1 {
+		for i := 0; i < correctTotal; i++ {
 			batch = append(batch, batchservice.Item{ID: i})
 		}
 
@@ -81,7 +81,7 @@ func TestButchClient_Send(t *testing.T) {
 		localClient := Init(logger, service)
 
 		var batch batchservice.Batch
-		for i := 0; i < correctTotal; i += 1 {
+		for i := 0; i < correctTotal; i++ {
 			batch = append(batch, batchservice.Item{ID: i})
 		}
 
@@ -105,9 +105,9 @@ func TestButchClient_Send(t *testing.T) {
 
 		requestCtx, _ := context.WithCancel(context.Background())
 
-		for i := 0; i < iterations; i += 1 {
+		for i := 0; i < iterations; i++ {
 			batch := make(batchservice.Batch, 0, correctTotal)
-			for j := 0; j < correctTotal; j += 1 {
+			for j := 0; j < correctTotal; j++ {
 				batch = append(batch, batchservice.Item{ID: i})
 			}
 
