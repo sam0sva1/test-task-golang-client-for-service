@@ -15,7 +15,7 @@ type ChannelItem struct {
 }
 
 type ButchClient struct {
-	channel         chan *ChannelItem
+	channel         chan struct{}
 	done            chan struct{}
 	service         batchservice.Service
 	itemNumberLimit uint64
@@ -30,7 +30,7 @@ var once sync.Once
 func Init(ctx context.Context, service batchservice.Service) *ButchClient {
 	once.Do(func() {
 		number, period := service.GetLimits()
-		channel := make(chan *ChannelItem)
+		channel := make(chan struct{})
 		done := make(chan struct{})
 
 		client = &ButchClient{
@@ -40,40 +40,34 @@ func Init(ctx context.Context, service batchservice.Service) *ButchClient {
 			number,
 			period,
 		}
-
-		go client.runMainLoop(ctx)
 	})
+
+	go func() {
+		<-ctx.Done()
+		fmt.Println("GLOBAL CANCELED")
+		close(client.done)
+	}()
 
 	return client
 }
 
-func (c *ButchClient) runMainLoop(ctx context.Context) {
-	for {
-		select {
-		case chItem := <-c.channel:
-			c.processBatch(*chItem)
-		case <-ctx.Done():
-			close(client.done)
-			return
+func (c *ButchClient) processBatch(chItem *ChannelItem) {
+	defer func() {
+		c.channel <- struct{}{}
+	}()
 
-		default:
-
-		}
-	}
-}
-
-func (c *ButchClient) processBatch(chItem ChannelItem) {
 	part := chItem.batch
 
 	for {
 		select {
 		case <-chItem.reqContext.Done():
+			fmt.Println("CANCELED")
 			return
 
 		default:
 			if uint64(len(part)) <= c.itemNumberLimit {
 				c.processItem(chItem.reqContext, part)
-				break
+				return
 			}
 
 			toSend := part[:c.itemNumberLimit]
@@ -100,23 +94,20 @@ func (c *ButchClient) processItem(ctx context.Context, newBatch batchservice.Bat
 }
 
 func (c *ButchClient) Send(ctx context.Context, newBatch batchservice.Batch) error {
-	ch := make(chan error)
+	select {
+	case <-c.done:
+		fmt.Println("ALREADY TERMINATED")
+		return ErrClientAlreadyTerminated
+	default:
+		go func() {
+			chiItem := &ChannelItem{
+				reqContext: ctx,
+				batch:      newBatch,
+			}
+			go c.processBatch(chiItem)
+			<-c.channel
+		}()
 
-	chiItem := &ChannelItem{
-		reqContext: ctx,
-		batch:      newBatch,
+		return nil
 	}
-
-	go func() {
-		select {
-		case <-c.done:
-			ch <- ErrClientAlreadyTerminated
-			return
-		case c.channel <- chiItem:
-			ch <- nil
-			return
-		}
-	}()
-
-	return <-ch
 }

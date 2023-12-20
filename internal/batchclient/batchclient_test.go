@@ -45,7 +45,7 @@ func TestButchClient_Send(t *testing.T) {
 		}
 	})
 
-	t.Run("panics if incorrect timing", func(t *testing.T) {
+	t.Run("do not panic if correct timing", func(t *testing.T) {
 		Setup()
 		correctTotal := 100
 		correctTiming := 100 * time.Millisecond
@@ -73,22 +73,17 @@ func TestButchClient_Send(t *testing.T) {
 		time.Sleep(3 * time.Second)
 	})
 
-	t.Run("stops processing after ctx.cancel", func(t *testing.T) {
+	t.Run("stops processing after request ctx.cancel", func(t *testing.T) {
 		Setup()
-		once = sync.Once{}
-		correctTotal := 50
-		expectedTotalAfterStop := 50
 
-		var total atomic.Uint64
+		correctTotal := 70
 
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, _ := context.WithCancel(context.Background())
 		service := batchservice.New(
 			batchservice.WithNumber(17),
-			batchservice.WithPeriod(200*time.Millisecond),
-			batchservice.WithTestHandler(func(batch batchservice.Batch) {
-				total.Add(uint64(len(batch)))
-			}),
+			batchservice.WithPeriod(1*time.Second),
 		)
+
 		localClient := Init(ctx, service)
 
 		var batch batchservice.Batch
@@ -96,27 +91,50 @@ func TestButchClient_Send(t *testing.T) {
 			batch = append(batch, batchservice.Item{ID: i})
 		}
 
-		localClient.Send(ctx, batch)
+		requestCtx, requestCancel := context.WithCancel(context.Background())
+		localClient.Send(requestCtx, batch)
+		time.Sleep(2 * time.Second)
+		requestCancel()
+	})
 
-		time.Sleep(1 * time.Second)
-		cancel()
+	t.Run("stops processing after global ctx.cancel", func(t *testing.T) {
+		Setup()
 
-		time.Sleep(1 * time.Second)
-		err1 := localClient.Send(ctx, batch)
-		err2 := localClient.Send(ctx, batch)
+		correctTotal := 5
+		var total atomic.Uint64
 
-		time.Sleep(1 * time.Second)
+		globalCtx, globalCancel := context.WithCancel(context.Background())
+		service := batchservice.New(
+			batchservice.WithNumber(2),
+			batchservice.WithPeriod(1*time.Second),
+			batchservice.WithTestHandler(func(batch batchservice.Batch) {
+				total.Add(uint64(len(batch)))
+			}),
+		)
 
-		if err1 != ErrClientAlreadyTerminated {
-			t.Fatalf("Cannot prevent writing into already closed channel")
+		localClient := Init(globalCtx, service)
+
+		batch := batchservice.Batch{
+			batchservice.Item{ID: 1},
+			batchservice.Item{ID: 2},
+			batchservice.Item{ID: 3},
+			batchservice.Item{ID: 4},
+			batchservice.Item{ID: 5},
 		}
+		requestCtx, _ := context.WithCancel(context.Background())
+		err := localClient.Send(requestCtx, batch)
 
-		if err2 != ErrClientAlreadyTerminated {
-			t.Fatalf("Cannot prevent writing into already closed channel")
+		time.Sleep(2 * time.Second)
+		globalCancel()
+		time.Sleep(1 * time.Second)
+
+		err = localClient.Send(requestCtx, batch)
+		if err == nil {
+			t.Fatalf("cannot catch terminated client")
 		}
 
 		gotTotal := total.Load()
-		if gotTotal != uint64(expectedTotalAfterStop) {
+		if gotTotal != uint64(correctTotal) {
 			t.Fatalf("Incorrect total. Get %d, expected: %d", gotTotal, correctTotal)
 		}
 	})
