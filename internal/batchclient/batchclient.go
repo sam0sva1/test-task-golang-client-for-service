@@ -18,7 +18,7 @@ type ChannelItem struct {
 type ButchClient struct {
 	// Replace with logger interface
 	logger          *slog.Logger
-	channel         chan struct{}
+	channel         chan ChannelItem
 	done            chan struct{}
 	service         batchservice.Service
 	itemNumberLimit uint64
@@ -26,7 +26,7 @@ type ButchClient struct {
 }
 
 func Init(logger *slog.Logger, service batchservice.Service) *ButchClient {
-	channel := make(chan struct{})
+	channel := make(chan ChannelItem)
 	done := make(chan struct{})
 
 	client := &ButchClient{
@@ -38,9 +38,7 @@ func Init(logger *slog.Logger, service batchservice.Service) *ButchClient {
 
 	client.resetLimits()
 
-	go func() {
-		channel <- struct{}{}
-	}()
+	go client.startMainLoop()
 
 	return client
 }
@@ -51,37 +49,46 @@ func (c *ButchClient) resetLimits() {
 	c.periodLimit = period
 }
 
-// processBatch cuts a batch into chunks to comply underlying service restrictions.
-// At the end of processing it releases the queue.
-func (c *ButchClient) processBatch(chItem *ChannelItem) {
-	defer func() {
-		c.channel <- struct{}{}
-	}()
-
-	part := chItem.batch
+// startMainLoop begins to wait for chanItem to process batches.
+// During iterations the main loop make sure that a sending batch is full.
+// Otherwise, adds more items from the next batch
+func (c *ButchClient) startMainLoop() {
+	var accum batchservice.Batch
+	var lastContext context.Context
 
 	for {
+	escapeInnerLoop:
+
 		select {
-		case <-chItem.reqContext.Done():
-			return
+		case chanItem := <-c.channel:
+			{
+				accum = append(chanItem.batch)
+				lastContext = chanItem.reqContext
 
-		default:
-			if uint64(len(part)) <= c.itemNumberLimit {
-				c.processItem(chItem.reqContext, part)
-				return
+				for {
+					if uint64(len(accum)) < c.itemNumberLimit {
+						break escapeInnerLoop
+					}
+
+					batchToSend := accum[:c.itemNumberLimit]
+					accum = accum[c.itemNumberLimit:]
+
+					c.processBatch(lastContext, batchToSend)
+				}
 			}
-
-			toSend := part[:c.itemNumberLimit]
-			part = part[c.itemNumberLimit:]
-
-			c.processItem(chItem.reqContext, toSend)
+		default:
+			if len(accum) > 0 {
+				c.processBatch(lastContext, accum)
+				accum = nil
+				lastContext = nil
+			}
 		}
 	}
 }
 
-// processItem runs only synchronously because of after channel synchronization.
+// processBatch runs only synchronously because of after-channel synchronization.
 // Next call runs only after period limit or process response.
-func (c *ButchClient) processItem(ctx context.Context, newBatch batchservice.Batch) {
+func (c *ButchClient) processBatch(ctx context.Context, newBatch batchservice.Batch) {
 	mark := "batchClient.processItem"
 
 	after := time.After(c.periodLimit)
@@ -104,16 +111,20 @@ func (c *ButchClient) processItem(ctx context.Context, newBatch batchservice.Bat
 	<-after
 }
 
-// Send processes batch items one by one avoiding concurrent start
-// but not blocking a caller function
+// Send starts a goroutine that processes batch items one by one avoiding concurrent start
+// but not blocking Send function itself
 // and this way avoiding blockage of underlying service.
 func (c *ButchClient) Send(ctx context.Context, newBatch batchservice.Batch) {
 	go func() {
-		<-c.channel
-		chiItem := &ChannelItem{
+		chiItem := ChannelItem{
 			reqContext: ctx,
 			batch:      newBatch,
 		}
-		go c.processBatch(chiItem)
+
+		select {
+		case <-ctx.Done():
+			return
+		case c.channel <- chiItem:
+		}
 	}()
 }

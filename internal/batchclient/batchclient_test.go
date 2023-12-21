@@ -14,6 +14,7 @@ var logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level:
 
 func TestButchClient_Send(t *testing.T) {
 	t.Run("gets correct final total", func(t *testing.T) {
+		t.Parallel()
 		correctTotal := 100
 
 		var total atomic.Uint64
@@ -35,6 +36,7 @@ func TestButchClient_Send(t *testing.T) {
 
 		localClient.Send(ctx, batch)
 
+		//time.Sleep(10 * time.Minute)
 		time.Sleep(3 * time.Second)
 
 		gotTotal := total.Load()
@@ -44,6 +46,7 @@ func TestButchClient_Send(t *testing.T) {
 	})
 
 	t.Run("do not panic if correct timing", func(t *testing.T) {
+		t.Parallel()
 		correctTotal := 100
 		correctTiming := 100 * time.Millisecond
 
@@ -71,6 +74,7 @@ func TestButchClient_Send(t *testing.T) {
 	})
 
 	t.Run("stops processing after request ctx.cancel", func(t *testing.T) {
+		t.Parallel()
 		correctTotal := 70
 
 		service := batchservice.New(
@@ -92,6 +96,7 @@ func TestButchClient_Send(t *testing.T) {
 	})
 
 	t.Run("works properly with multiple calls", func(t *testing.T) {
+		t.Parallel()
 		correctTotal := 10000
 		iterations := 5
 		correctTiming := 50 * time.Millisecond
@@ -115,5 +120,47 @@ func TestButchClient_Send(t *testing.T) {
 		}
 
 		time.Sleep(7 * time.Second)
+	})
+
+	t.Run("sends what remains if nothing get from the channel", func(t *testing.T) {
+		t.Parallel()
+
+		remainedAmount := 1
+		var timesItGotRemained atomic.Uint64
+
+		correctTotal := 5
+		iterations := 5
+		correctTiming := 100 * time.Millisecond
+		var numberOfItems uint64 = 2
+
+		service := batchservice.New(
+			batchservice.WithNumber(numberOfItems),
+			batchservice.WithPeriod(correctTiming),
+			batchservice.WithTestHandler(func(batch batchservice.Batch) {
+				if len(batch) == remainedAmount {
+					timesItGotRemained.Add(1)
+				}
+			}),
+		)
+		localClient := Init(logger, service)
+
+		requestCtx, _ := context.WithCancel(context.Background())
+
+		for i := 0; i < iterations; i++ {
+			batch := make(batchservice.Batch, 0, correctTotal)
+			for j := 0; j < correctTotal; j++ {
+				batch = append(batch, batchservice.Item{ID: i})
+			}
+
+			localClient.Send(requestCtx, batch)
+
+			time.Sleep(500 * time.Millisecond)
+		}
+
+		time.Sleep(3 * time.Second)
+		timesGotRemained := timesItGotRemained.Load()
+		if timesGotRemained != uint64(correctTotal) {
+			t.Fatalf("Incorrect timesGotRemained. Get %d, expected: %d", timesGotRemained, correctTotal)
+		}
 	})
 }
