@@ -9,31 +9,31 @@ import (
 
 var ErrBlocked = errors.New("blocked")
 
-type ButchServiceConfig struct {
+type BatchServiceConfig struct {
 	amount      uint64
 	period      time.Duration
 	testHandler func(batch Batch)
 }
 
-func WithNumber(number uint64) func(*ButchServiceConfig) {
-	return func(c *ButchServiceConfig) {
+func WithNumber(number uint64) func(*BatchServiceConfig) {
+	return func(c *BatchServiceConfig) {
 		c.amount = number
 	}
 }
 
-func WithPeriod(period time.Duration) func(*ButchServiceConfig) {
-	return func(c *ButchServiceConfig) {
+func WithPeriod(period time.Duration) func(*BatchServiceConfig) {
+	return func(c *BatchServiceConfig) {
 		c.period = period
 	}
 }
 
-func WithTestHandler(testHandler func(batch Batch)) func(*ButchServiceConfig) {
-	return func(c *ButchServiceConfig) {
+func WithTestHandler(testHandler func(batch Batch)) func(*BatchServiceConfig) {
+	return func(c *BatchServiceConfig) {
 		c.testHandler = testHandler
 	}
 }
 
-type ButchService struct {
+type BatchService struct {
 	start       time.Time
 	isFrozen    bool
 	amount      uint64
@@ -42,8 +42,8 @@ type ButchService struct {
 	testHandler func(batch Batch)
 }
 
-func New(options ...func(config *ButchServiceConfig)) Service {
-	cfg := &ButchServiceConfig{
+func New(options ...func(config *BatchServiceConfig)) Service {
+	cfg := &BatchServiceConfig{
 		amount:      70,
 		period:      100 * time.Millisecond,
 		testHandler: nil,
@@ -53,7 +53,7 @@ func New(options ...func(config *ButchServiceConfig)) Service {
 		opt(cfg)
 	}
 
-	return &ButchService{
+	return &BatchService{
 		start:       time.Now().Add(-1 * time.Second),
 		isFrozen:    false,
 		amount:      cfg.amount,
@@ -63,11 +63,11 @@ func New(options ...func(config *ButchServiceConfig)) Service {
 	}
 }
 
-func (s *ButchService) GetLimits() (n uint64, p time.Duration) {
+func (s *BatchService) GetLimits() (n uint64, p time.Duration) {
 	return s.amount, s.period
 }
 
-func (s *ButchService) Process(ctx context.Context, batch Batch) error {
+func (s *BatchService) Process(ctx context.Context, batch Batch) error {
 	_ = ctx
 	delta := time.Since(s.start)
 	s.start = time.Now()

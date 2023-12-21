@@ -12,7 +12,7 @@ import (
 
 var logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-func TestButchClient_Send(t *testing.T) {
+func TestBatchClient_Send(t *testing.T) {
 	t.Run("gets correct final total", func(t *testing.T) {
 		t.Parallel()
 		correctTotal := 100

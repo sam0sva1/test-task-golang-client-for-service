@@ -18,8 +18,10 @@ func Setup() {
 	)
 }
 
-func TestButchService_GetLimits(t *testing.T) {
+func TestBatchService_GetLimits(t *testing.T) {
 	t.Run("sets limits and gets correct", func(t *testing.T) {
+		t.Parallel()
+
 		number := uint64(1234)
 		period := 4321 * time.Millisecond
 
@@ -40,7 +42,7 @@ func TestButchService_GetLimits(t *testing.T) {
 	})
 }
 
-func TestButchService_Process(t *testing.T) {
+func TestBatchService_Process(t *testing.T) {
 	t.Run("with correct amount", func(t *testing.T) {
 		Setup()
 
@@ -130,6 +132,8 @@ func TestButchService_Process(t *testing.T) {
 	})
 
 	t.Run("runs a special test handler if provided", func(t *testing.T) {
+		t.Parallel()
+
 		isHandlerActivated := false
 
 		localCtx, _ := context.WithCancel(context.Background())

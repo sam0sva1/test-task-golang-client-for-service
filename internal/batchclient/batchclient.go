@@ -15,7 +15,7 @@ type ChannelItem struct {
 	reqContext context.Context
 }
 
-type ButchClient struct {
+type BatchClient struct {
 	// Replace with logger interface
 	logger          *slog.Logger
 	channel         chan ChannelItem
@@ -25,11 +25,11 @@ type ButchClient struct {
 	periodLimit     time.Duration
 }
 
-func Init(logger *slog.Logger, service batchservice.Service) *ButchClient {
+func Init(logger *slog.Logger, service batchservice.Service) *BatchClient {
 	channel := make(chan ChannelItem)
 	done := make(chan struct{})
 
-	client := &ButchClient{
+	client := &BatchClient{
 		logger:  logger,
 		channel: channel,
 		done:    done,
@@ -43,7 +43,7 @@ func Init(logger *slog.Logger, service batchservice.Service) *ButchClient {
 	return client
 }
 
-func (c *ButchClient) resetLimits() {
+func (c *BatchClient) resetLimits() {
 	number, period := c.service.GetLimits()
 	c.itemNumberLimit = number
 	c.periodLimit = period
@@ -52,7 +52,7 @@ func (c *ButchClient) resetLimits() {
 // startMainLoop begins to wait for chanItem to process batches.
 // During iterations the main loop make sure that a sending batch is full.
 // Otherwise, adds more items from the next batch
-func (c *ButchClient) startMainLoop() {
+func (c *BatchClient) startMainLoop() {
 	var accum batchservice.Batch
 	var lastContext context.Context
 
@@ -88,7 +88,7 @@ func (c *ButchClient) startMainLoop() {
 
 // processBatch runs only synchronously because of after-channel synchronization.
 // Next call runs only after period limit or process response.
-func (c *ButchClient) processBatch(ctx context.Context, newBatch batchservice.Batch) {
+func (c *BatchClient) processBatch(ctx context.Context, newBatch batchservice.Batch) {
 	mark := "batchClient.processItem"
 
 	after := time.After(c.periodLimit)
@@ -114,7 +114,7 @@ func (c *ButchClient) processBatch(ctx context.Context, newBatch batchservice.Ba
 // Send starts a goroutine that processes batch items one by one avoiding concurrent start
 // but not blocking Send function itself
 // and this way avoiding blockage of underlying service.
-func (c *ButchClient) Send(ctx context.Context, newBatch batchservice.Batch) {
+func (c *BatchClient) Send(ctx context.Context, newBatch batchservice.Batch) {
 	go func() {
 		chiItem := ChannelItem{
 			reqContext: ctx,
