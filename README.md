@@ -2,7 +2,7 @@
 
 Requires to implement a client for an external service processes a limited number of items by batches for limited period of time.
 
-> Didn't provide configuration settings and graceful shutdown
+> Simplest implementation without batch sharing between requests. Didn't provide configuration settings and graceful shutdown
 
 ### [Makefile commands](Makefile):
 ```
