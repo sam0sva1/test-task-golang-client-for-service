@@ -9,8 +9,8 @@ import (
 	"time"
 )
 
-// ChannelItem contains one batch and a context related to it.
-type ChannelItem struct {
+// channelItem contains one batch and a context related to it.
+type channelItem struct {
 	batch      batchservice.Batch
 	reqContext context.Context
 }
@@ -18,14 +18,14 @@ type ChannelItem struct {
 type BatchClient struct {
 	// Replace with logger interface
 	logger          *slog.Logger
-	queue           chan ChannelItem
+	queue           chan channelItem
 	service         batchservice.Service
 	itemNumberLimit uint64
 	periodLimit     time.Duration
 }
 
 func Init(logger *slog.Logger, service batchservice.Service) *BatchClient {
-	queue := make(chan ChannelItem)
+	queue := make(chan channelItem)
 
 	client := &BatchClient{
 		logger:  logger,
@@ -113,7 +113,7 @@ func (c *BatchClient) processBatch(ctx context.Context, newBatch batchservice.Ba
 // and this way avoiding blockage of underlying service.
 func (c *BatchClient) Send(ctx context.Context, newBatch batchservice.Batch) {
 	go func() {
-		chiItem := ChannelItem{
+		chiItem := channelItem{
 			reqContext: ctx,
 			batch:      newBatch,
 		}
