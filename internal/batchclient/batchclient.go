@@ -18,21 +18,18 @@ type ChannelItem struct {
 type BatchClient struct {
 	// Replace with logger interface
 	logger          *slog.Logger
-	channel         chan ChannelItem
-	done            chan struct{}
+	queue           chan ChannelItem
 	service         batchservice.Service
 	itemNumberLimit uint64
 	periodLimit     time.Duration
 }
 
 func Init(logger *slog.Logger, service batchservice.Service) *BatchClient {
-	channel := make(chan ChannelItem)
-	done := make(chan struct{})
+	queue := make(chan ChannelItem)
 
 	client := &BatchClient{
 		logger:  logger,
-		channel: channel,
-		done:    done,
+		queue:   queue,
 		service: service,
 	}
 
@@ -60,7 +57,7 @@ func (c *BatchClient) startMainLoop() {
 	escapeInnerLoop:
 
 		select {
-		case chanItem := <-c.channel:
+		case chanItem := <-c.queue:
 			{
 				accum = append(chanItem.batch)
 				lastContext = chanItem.reqContext
@@ -124,7 +121,7 @@ func (c *BatchClient) Send(ctx context.Context, newBatch batchservice.Batch) {
 		select {
 		case <-ctx.Done():
 			return
-		case c.channel <- chiItem:
+		case c.queue <- chiItem:
 		}
 	}()
 }
