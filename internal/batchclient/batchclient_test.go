@@ -149,7 +149,7 @@ func TestBatchClient_Send(t *testing.T) {
 		for i := 0; i < iterations; i++ {
 			batch := make(batchservice.Batch, 0, correctTotal)
 			for j := 0; j < correctTotal; j++ {
-				batch = append(batch, batchservice.Item{ID: i})
+				batch = append(batch, batchservice.Item{ID: j})
 			}
 
 			localClient.Send(requestCtx, batch)

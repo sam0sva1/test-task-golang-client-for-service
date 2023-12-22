@@ -88,7 +88,7 @@ func (c *BatchClient) startMainLoop() {
 func (c *BatchClient) processBatch(ctx context.Context, newBatch batchservice.Batch) {
 	mark := "batchClient.processItem"
 
-	after := time.After(c.periodLimit)
+	minimumTime := time.After(c.periodLimit)
 
 	err := c.service.Process(ctx, newBatch)
 	if err != nil {
@@ -105,7 +105,7 @@ func (c *BatchClient) processBatch(ctx context.Context, newBatch batchservice.Ba
 		}
 	}
 
-	<-after
+	<-minimumTime
 }
 
 // Send starts a goroutine that processes batch items one by one avoiding concurrent start
