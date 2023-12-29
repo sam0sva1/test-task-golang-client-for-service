@@ -27,7 +27,8 @@ func main() {
 	r := chi.NewRouter()
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Test task project is up and running!"))
+		w.Header().Add("Content-Type", "application/json")
+		w.Write([]byte("{ \"app\": \"test-app\", \"status\": \"OK\", \"version\": \"0.0.2\" }"))
 	})
 
 	r.Post("/send", func(w http.ResponseWriter, r *http.Request) {
