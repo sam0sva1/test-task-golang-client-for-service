@@ -1,11 +1,11 @@
 package batchclient
 
 import (
+	batchservice "batchservice/m/v2"
 	"context"
 	"errors"
 	"fmt"
 	"log/slog"
-	"service-client/internal/batchservice"
 	"time"
 )
 

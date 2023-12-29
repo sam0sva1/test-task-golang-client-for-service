@@ -1,0 +1,15 @@
+batchservice.go:13:6         revive        exported: type name will be used as batchservice.BatchServiceConfig by other packages, and that stutters; consider calling this Config
+batchservice_test.go:14:7    govet         lostcancel: the cancel function returned by context.WithCancel should be called, not discarded, to avoid a context leak
+batchservice_test.go:21:6    tparallel     TestBatchService_GetLimits should call t.Parallel on the top level as well as its subtests
+batchservice_test.go:45:6    tparallel     TestBatchService_Process should call t.Parallel on the top level as well as its subtests
+batchservice_test.go:74:3    staticcheck   SA4006: this value of `err` is never used
+batchservice_test.go:74:3    ineffassign   ineffectual assignment to err
+batchservice_test.go:74:3    wastedassign  assigned to err, but reassigned without using the value
+batchservice_test.go:96:6    errorlint     comparing with != will fail on wrapped errors. Use errors.Is to check for a specific error
+batchservice_test.go:108:3   ineffassign   ineffectual assignment to err
+batchservice_test.go:108:3   staticcheck   SA4006: this value of `err` is never used
+batchservice_test.go:108:3   wastedassign  assigned to err, but reassigned without using the value
+batchservice_test.go:123:18  errcheck      Error return value of `service.Process` is not checked
+batchservice_test.go:124:18  errcheck      Error return value of `service.Process` is not checked
+batchservice_test.go:139:13  govet         lostcancel: the cancel function returned by context.WithCancel should be called, not discarded, to avoid a context leak
+batchservice_test.go:152:18  errcheck      Error return value of `service.Process` is not checked

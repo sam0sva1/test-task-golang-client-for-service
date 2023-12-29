@@ -1,6 +1,8 @@
 package main
 
 import (
+	batchclient "batchclient/m/v2"
+	batchservice "batchservice/m/v2"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,8 +11,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"service-client/internal/batchclient"
-	"service-client/internal/batchservice"
 	"time"
 )
 

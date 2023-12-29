@@ -1,10 +1,10 @@
 package batchclient
 
 import (
+	"batchservice/m/v2"
 	"context"
 	"log/slog"
 	"os"
-	"service-client/internal/batchservice"
 	"sync/atomic"
 	"testing"
 	"time"
