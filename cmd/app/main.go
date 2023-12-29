@@ -18,7 +18,10 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	logger := setupLogger()
 
-	service := batchservice.New()
+	service := batchservice.New(
+		batchservice.WithNumber(70),
+		batchservice.WithPeriod(100*time.Millisecond),
+	)
 	client := batchclient.Init(logger, service)
 
 	r := chi.NewRouter()

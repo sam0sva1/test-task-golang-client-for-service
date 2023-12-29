@@ -4,20 +4,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 )
 
 var ErrBlocked = errors.New("blocked")
 
 type BatchServiceConfig struct {
-	amount      uint64
-	period      time.Duration
-	testHandler func(batch Batch)
+	amountNumber uint64
+	period       time.Duration
+	testHandler  func(batch Batch)
 }
 
 func WithNumber(number uint64) func(*BatchServiceConfig) {
 	return func(c *BatchServiceConfig) {
-		c.amount = number
+		c.amountNumber = number
 	}
 }
 
@@ -34,18 +35,16 @@ func WithTestHandler(testHandler func(batch Batch)) func(*BatchServiceConfig) {
 }
 
 type BatchService struct {
-	start       time.Time
-	isFrozen    bool
-	amount      uint64
-	period      time.Duration
-	freeze      time.Duration
-	testHandler func(batch Batch)
+	start        time.Time
+	isFrozen     bool
+	amountNumber uint64
+	period       time.Duration
+	freeze       time.Duration
+	testHandler  func(batch Batch)
 }
 
 func New(options ...func(config *BatchServiceConfig)) Service {
 	cfg := &BatchServiceConfig{
-		amount:      70,
-		period:      100 * time.Millisecond,
 		testHandler: nil,
 	}
 
@@ -53,18 +52,26 @@ func New(options ...func(config *BatchServiceConfig)) Service {
 		opt(cfg)
 	}
 
+	if cfg.period == 0 {
+		log.Fatal("BatchService error: \"period\" param is required ")
+	}
+
+	if cfg.amountNumber == 0 {
+		log.Fatal("BatchService error: \"number\" param is required ")
+	}
+
 	return &BatchService{
-		start:       time.Now().Add(-1 * time.Second),
-		isFrozen:    false,
-		amount:      cfg.amount,
-		period:      cfg.period,
-		freeze:      5 * time.Second,
-		testHandler: cfg.testHandler,
+		start:        time.Now().Add(-1 * time.Second),
+		isFrozen:     false,
+		amountNumber: cfg.amountNumber,
+		period:       cfg.period,
+		freeze:       5 * time.Second,
+		testHandler:  cfg.testHandler,
 	}
 }
 
 func (s *BatchService) GetLimits() (n uint64, p time.Duration) {
-	return s.amount, s.period
+	return s.amountNumber, s.period
 }
 
 func (s *BatchService) Process(ctx context.Context, batch Batch) error {
@@ -76,7 +83,7 @@ func (s *BatchService) Process(ctx context.Context, batch Batch) error {
 		s.isFrozen = false
 	}
 
-	if delta < s.period || uint64(len(batch)) > s.amount {
+	if delta < s.period || uint64(len(batch)) > s.amountNumber {
 		fmt.Println("**** Frozen: ")
 		s.isFrozen = true
 		return ErrBlocked
