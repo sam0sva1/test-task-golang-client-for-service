@@ -1,10 +1,10 @@
 package batchclient
 
 import (
-	batchservice "batchservice/m/v2"
 	"context"
 	"errors"
 	"fmt"
+	"github.com/sam0sva1/batchservice/v2"
 	"log/slog"
 	"time"
 )

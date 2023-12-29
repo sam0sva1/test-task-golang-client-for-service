@@ -1,8 +1,8 @@
 package batchclient
 
 import (
-	"batchservice/m/v2"
 	"context"
+	"github.com/sam0sva1/batchservice/v2"
 	"log/slog"
 	"os"
 	"sync/atomic"

@@ -1,12 +1,12 @@
 package main
 
 import (
-	batchclient "batchclient/m/v2"
-	batchservice "batchservice/m/v2"
 	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi/v5"
+	"github.com/sam0sva1/batchclient/v2"
+	"github.com/sam0sva1/batchservice/v2"
 	"log"
 	"log/slog"
 	"net/http"
