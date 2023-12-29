@@ -163,4 +163,84 @@ func TestBatchClient_Send(t *testing.T) {
 			t.Fatalf("Incorrect timesGotRemained. Get %d, expected: %d", timesGotRemained, correctTotal)
 		}
 	})
+
+	t.Run("sends only one item in a batch", func(t *testing.T) {
+		t.Parallel()
+
+		var timesItGotRemained atomic.Uint64
+		var itemsInTheBatch atomic.Int32
+
+		correctTotal := 1
+		correctBatchLength := 1
+		correctTiming := 100 * time.Millisecond
+		var numberOfItems uint64 = 2
+
+		service := batchservice.New(
+			batchservice.WithNumber(numberOfItems),
+			batchservice.WithPeriod(correctTiming),
+			batchservice.WithTestHandler(func(batch batchservice.Batch) {
+				itemsInTheBatch.Add(int32(len(batch)))
+
+				timesItGotRemained.Add(1)
+			}),
+		)
+		localClient := Init(logger, service)
+
+		requestCtx, _ := context.WithCancel(context.Background())
+		batch := batchservice.Batch{
+			{ID: 1},
+		}
+		localClient.Send(requestCtx, batch)
+
+		time.Sleep(2 * time.Second)
+
+		timesGotRemained := timesItGotRemained.Load()
+		if timesGotRemained != uint64(correctTotal) {
+			t.Fatalf("Incorrect timesGotRemained. Get %d, expected: %d", timesGotRemained, correctTotal)
+		}
+
+		actualItemsLen := itemsInTheBatch.Load()
+		if actualItemsLen != int32(correctBatchLength) {
+			t.Fatalf("Incorrect actualItemsLen. Get %d, expected: %d", actualItemsLen, correctBatchLength)
+		}
+	})
+
+	t.Run("sends Zero items in a batch", func(t *testing.T) {
+		t.Parallel()
+
+		var timesItGotRemained atomic.Uint64
+		var itemsInTheBatch atomic.Int32
+
+		correctTotal := 0
+		correctBatchLength := 0
+		correctTiming := 100 * time.Millisecond
+		var numberOfItems uint64 = 2
+
+		service := batchservice.New(
+			batchservice.WithNumber(numberOfItems),
+			batchservice.WithPeriod(correctTiming),
+			batchservice.WithTestHandler(func(batch batchservice.Batch) {
+				itemsInTheBatch.Add(int32(len(batch)))
+
+				timesItGotRemained.Add(1)
+			}),
+		)
+		localClient := Init(logger, service)
+
+		requestCtx, _ := context.WithCancel(context.Background())
+		batch := batchservice.Batch{}
+		localClient.Send(requestCtx, batch)
+
+		time.Sleep(2 * time.Second)
+
+		timesGotRemained := timesItGotRemained.Load()
+		if timesGotRemained != uint64(correctTotal) {
+			t.Fatalf("Incorrect timesGotRemained. Get %d, expected: %d", timesGotRemained, correctTotal)
+		}
+
+		actualItemsLen := itemsInTheBatch.Load()
+		if actualItemsLen != int32(correctBatchLength) {
+			t.Fatalf("Incorrect actualItemsLen. Get %d, expected: %d", actualItemsLen, correctBatchLength)
+		}
+	})
 }
