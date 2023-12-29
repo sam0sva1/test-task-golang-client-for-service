@@ -24,7 +24,7 @@ func main() {
 	r := chi.NewRouter()
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("welcome"))
+		w.Write([]byte("Test task project is up and running!"))
 	})
 
 	r.Post("/send", func(w http.ResponseWriter, r *http.Request) {

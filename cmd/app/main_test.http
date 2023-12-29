@@ -1,3 +1,7 @@
+### Get health-check
+GET http://localhost:3000/
+Content-Type: application/json
+
 ### Send POST to append
 POST http://localhost:3000/send
 Content-Type: application/json
