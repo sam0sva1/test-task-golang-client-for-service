@@ -61,6 +61,7 @@ func main() {
 	server := &http.Server{
 		Addr:              ":3000",
 		ReadHeaderTimeout: 3 * time.Second,
+		Handler:           r,
 	}
 
 	logger.Info("starting the server...")
